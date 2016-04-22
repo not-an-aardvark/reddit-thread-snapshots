@@ -52,7 +52,7 @@ function generateSnapshot (requestedThread) {
   (r ? Promise.resolve() : createRequester()).then(() => {
     const item = requestedThread.type === 'Comment' ? r.get_comment(requestedThread.id) : r.get_submission(requestedThread.id);
     return item.expand_replies();
-  }).then(JSON.stringify).then(data => {
+  }).then(obj => JSON.stringify(obj, null, 4)).then(data => {
     document.getElementById('snapshot').innerHTML = data;
   });
 }
