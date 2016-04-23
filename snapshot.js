@@ -1,9 +1,11 @@
 'use strict';
 const REDDIT_APP_ID = 'Xt1ApJ4VuMj1vw';
 const REDIRECT_URI = 'https://not-an-aardvark.github.io/reddit-thread-snapshots/authorize.html';
+
 const USER_AGENT = 'reddit thread snapshots || https://github.com/not-an-aardvark/reddit-thread-snapshots';
 const REQUIRED_SCOPES = ['read'];
 const query = parseQueryString(window.location.search);
+let fetchedContent;
 
 const getRedirectString = state => `
 https://reddit.com/api/v1/authorize
@@ -52,8 +54,9 @@ function generateSnapshot (requestedThread) {
   (r ? Promise.resolve() : createRequester()).then(() => {
     const item = requestedThread.type === 'Comment' ? r.get_comment(requestedThread.id) : r.get_submission(requestedThread.id);
     return item.expand_replies();
-  }).then(obj => JSON.stringify(obj, null, 4)).then(data => {
-    document.getElementById('snapshot').innerHTML = data;
+  }).then(obj => {
+    fetchedContent = obj;
+    updateDisplay();
   });
 }
 
@@ -73,6 +76,35 @@ function createRequester () {
     document.getElementById('error-output').innerHTML = 'Sorry, something went wrong. Please check the dev console for further details.';
     throw err;
   });
+}
+
+function updateDisplay () {
+  if (!fetchedContent) {
+    return;
+  }
+  if (document.getElementById('lite-checkbox').checked) {
+    document.getElementById('snapshot').innerHTML = JSON.stringify(recursivelyPickProps(fetchedContent.toJSON()), null, 4);
+  } else {
+    document.getElementById('snapshot').innerHTML = JSON.stringify(fetchedContent, null, 4);
+  }
+}
+
+const LITE_KEY_NAMES = ['body', 'author', 'replies', 'comments'];
+
+function recursivelyPickProps (obj) {
+  if (typeof obj !== 'object') {
+    return obj;
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(recursivelyPickProps);
+  }
+  const newObj = {};
+  for (const i of LITE_KEY_NAMES) {
+    if (obj.hasOwnProperty(i)) {
+      newObj[i] = recursivelyPickProps(obj[i]);
+    }
+  }
+  return newObj;
 }
 
 if (window.location.pathname.endsWith('/authorize.html')) {
