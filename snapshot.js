@@ -110,15 +110,15 @@ function updateSnapshotDisplay () {
 }
 
 function createSnapshot (url) {
-  document.getElementById('output-box').style.display = 'block';
-  document.getElementById('loading-message').style.display = 'block';
   let parsedUrl;
   try {
     parsedUrl = parseUrl(url);
   } catch (err) {
-    document.getElementById('url-error').innerHTML = err.message;
+    document.getElementById('url-error-message').innerHTML = err.message;
     throw err;
   }
+  document.getElementById('output-box').style.display = 'block';
+  document.getElementById('loading-message').style.display = 'block';
   return getRefreshToken(query.code)
     .then(getRequester)
     .then(r => fetchSnapshot(r, parsedUrl))
