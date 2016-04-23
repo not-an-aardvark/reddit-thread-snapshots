@@ -27,7 +27,7 @@ function redirectToAuth () {
 }
 
 function getStateFromUrl(url) {
-  const matches = url.match(/^(?:http(?:s?):\/\/)?(?:\w*\.)?reddit.com\/(?:r\/\w{1,21}\/)?comments\/(\w{1,10})(?:\/\w{1,100})?(?:\/(\w{1,10})|\/?)?(?:\?.*)?$/);
+  const matches = url.match(/^(?:http(?:s?):\/\/)?(?:\w*\.)?reddit.com\/(?:r\/\w{1,21}\/)?comments\/(\w{1,10})(?:\/[\w\u00c0-\u017f]{1,100})?(?:\/(\w{1,10})|\/?)?(?:\?.*)?$/);
   if (!matches) {
     document.getElementById('url-error-message').innerHTML = 'Failed to parse URL; please enter a valid link to a reddit submission or comment.';
     throw new TypeError('Invalid URL');
@@ -89,7 +89,7 @@ function updateDisplay () {
   }
 }
 
-const LITE_KEY_NAMES = ['body', 'author', 'replies', 'comments'];
+const LITE_KEY_NAMES = ['selftext', 'body', 'author', 'replies', 'comments'];
 
 function recursivelyPickProps (obj) {
   if (typeof obj !== 'object') {
