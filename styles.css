@@ -7,7 +7,7 @@ body {
 	background-color: #eee;
 }
 
-#box {
+.box {
 	margin: 20px auto;
 	padding: 20px;
 	width: 800px;
@@ -23,7 +23,7 @@ p {
 	padding: 5px 0;
 }
 
-#thread-url {
+#thread-url-box {
 	width: 600px;
 	margin: 0 auto;
 }
@@ -47,7 +47,7 @@ p {
 		cursor: pointer;
 		background-color: #000;
 		box-shadow: 0 1px 3px 1px #bbb;
-	}	
+	}
 
 
 
@@ -58,4 +58,8 @@ p {
 
 #lite-checkbox {
 	margin: 5px
+}
+
+#output-box {
+	display: none;
 }

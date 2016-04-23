@@ -1,39 +1,17 @@
 'use strict';
+/* global snoowrap */
 const REDDIT_APP_ID = 'Xt1ApJ4VuMj1vw';
-const REDIRECT_URI = 'https://not-an-aardvark.github.io/reddit-thread-snapshots/authorize.html';
+const REDIRECT_URI = 'https://not-an-aardvark.github.io/reddit-thread-snapshots/';
 
 const USER_AGENT = 'reddit thread snapshots || https://github.com/not-an-aardvark/reddit-thread-snapshots';
 const REQUIRED_SCOPES = ['read'];
+const LITE_KEY_NAMES = ['selftext', 'body', 'author', 'url', 'id', 'replies', 'comments'];
+let cachedRequester;
+let refreshTokenPromise;
+let currentSnapshotObject;
+
 const query = parseQueryString(window.location.search);
-let fetchedContent;
-
-const getRedirectString = state => `
-https://reddit.com/api/v1/authorize
-?client_id=${REDDIT_APP_ID}
-&response_type=code
-&state=${encodeURIComponent(state)}
-&redirect_uri=${encodeURIComponent(REDIRECT_URI)}
-&duration=temporary
-&scope=${REQUIRED_SCOPES.join('%2C')}
-`;
-
-function redirectToAuth () {
-  try {
-    window.location = getRedirectString(getStateFromUrl(document.getElementById('thread-url').value));
-  } catch (err) {
-    console.error(err);
-    document.getElementById('url-error-message').innerHTML = 'Failed to parse URL; please enter a valid link to a reddit submission or comment.';
-  }
-}
-
-function getStateFromUrl(url) {
-  const matches = url.match(/^(?:http(?:s?):\/\/)?(?:\w*\.)?reddit.com\/(?:r\/\w{1,21}\/)?comments\/(\w{1,10})(?:\/[\w\u00c0-\u017f]{1,100})?(?:\/(\w{1,10})|\/?)?(?:\?.*)?$/);
-  if (!matches) {
-    document.getElementById('url-error-message').innerHTML = 'Failed to parse URL; please enter a valid link to a reddit submission or comment.';
-    throw new TypeError('Invalid URL');
-  }
-  return JSON.stringify(matches[2] ? {type: 'Comment', id: matches[2]} : {type: 'Submission', id: matches[1]});
-}
+const cookies = parseCookieString(document.cookie);
 
 function parseQueryString (str) {
   if (!str) {
@@ -48,48 +26,62 @@ function parseQueryString (str) {
   return obj;
 }
 
-let r;
-function generateSnapshot (requestedThread) {
-  document.getElementById('error-output') && (document.getElementById('error-output').innerHTML = '');
-  (r ? Promise.resolve() : createRequester()).then(() => {
-    const item = requestedThread.type === 'Comment' ? r.get_comment(requestedThread.id) : r.get_submission(requestedThread.id);
-    return item.expand_replies();
-  }).then(obj => {
-    fetchedContent = obj;
-    updateDisplay();
-  });
+function parseCookieString (cookieString) {
+  const obj = {};
+  const splitCookies = cookieString.split('; ');
+  for (const i of splitCookies) {
+    const pair = i.split('=');
+    obj[pair[0]] = pair[1];
+  }
+  return obj;
 }
 
-function createRequester () {
-  return snoowrap.request_handler.request.post({
+const getAuthRedirect = state =>
+`https://reddit.com/api/v1/authorize
+?client_id=${REDDIT_APP_ID}
+&response_type=code
+&state=${state}
+&redirect_uri=${encodeURIComponent(REDIRECT_URI)}
+&duration=permanent
+&scope=${REQUIRED_SCOPES.join('%2C')}
+`;
+
+function parseUrl (url) {
+  const matches = url.match(/^(?:http(?:s?):\/\/)?(?:\w*\.)?reddit.com\/(?:r\/\w{1,21}\/)?comments\/(\w{1,10})(?:\/[\w\u00c0-\u017f]{1,100})?(?:\/(\w{1,10})|\/?)?(?:\?.*)?$/);
+  if (!matches) {
+    throw new TypeError('Invalid URL. Please enter the URL of a reddit Submission or Comment.');
+  }
+  return matches;
+}
+
+function fetchSnapshot (requester, urlMatches) {
+  return (urlMatches[2] ? requester.get_comment(urlMatches[2]) : requester.get_submission(urlMatches[1])).expand_replies();
+}
+
+function getRefreshToken () {
+  refreshTokenPromise = refreshTokenPromise || (cookies.refresh_token ? Promise.resolve(cookies.refresh_token) : snoowrap.request_handler.request.post({
     url: 'https://www.reddit.com/api/v1/access_token',
     auth: {user: REDDIT_APP_ID, pass: ''},
     form: {grant_type: 'authorization_code', code: query.code, redirect_uri: REDIRECT_URI}
   }).then(response => {
-    if (!response.access_token) {
+    if (!response.refresh_token) {
       throw new Error('Authentication failed');
     }
-    r = new snoowrap({user_agent: USER_AGENT, access_token: response.access_token});
-    r.config({debug: true});
-    return null;
-  }).catch(err => {
-    document.getElementById('error-output').innerHTML = 'Sorry, something went wrong. Please check the dev console for further details.';
-    throw err;
-  });
+    document.cookie = `refresh_token=${response.refresh_token}`;
+    cookies.refresh_token = response.refresh_token;
+    return response.refresh_token;
+  }));
+  return refreshTokenPromise;
 }
 
-function updateDisplay () {
-  if (!fetchedContent) {
-    return;
+function getRequester (refresh_token) {
+  if (cachedRequester) {
+    return cachedRequester;
   }
-  if (document.getElementById('lite-checkbox').checked) {
-    document.getElementById('snapshot').innerHTML = JSON.stringify(recursivelyPickProps(fetchedContent.toJSON()), null, 4);
-  } else {
-    document.getElementById('snapshot').innerHTML = JSON.stringify(fetchedContent, null, 4);
-  }
+  cachedRequester = new snoowrap({user_agent: USER_AGENT, client_id: REDDIT_APP_ID, client_secret: '', refresh_token});
+  cachedRequester.config({debug: true});
+  return cachedRequester;
 }
-
-const LITE_KEY_NAMES = ['selftext', 'body', 'author', 'replies', 'comments'];
 
 function recursivelyPickProps (obj) {
   if (typeof obj !== 'object') {
@@ -107,9 +99,54 @@ function recursivelyPickProps (obj) {
   return newObj;
 }
 
-if (window.location.pathname.endsWith('/authorize.html')) {
-  if (!query.code) {
-    window.location = '.';
-  }
-  generateSnapshot(JSON.parse(query.state))
+function parseSnapshot (snapshot, liteMode) {
+  return liteMode ? JSON.stringify(recursivelyPickProps(snapshot.toJSON()), null, 4) : JSON.stringify(snapshot, null, 4);
 }
+
+function updateSnapshotDisplay () {
+  const liteMode = document.getElementById('lite-checkbox').checked;
+  document.getElementById('loading-message').style.display = 'none';
+  document.getElementById('snapshot').innerHTML = parseSnapshot(currentSnapshotObject, liteMode);
+}
+
+function createSnapshot (url) {
+  document.getElementById('output-box').style.display = 'block';
+  document.getElementById('loading-message').style.display = 'block';
+  let parsedUrl;
+  try {
+    parsedUrl = parseUrl(url);
+  } catch (err) {
+    document.getElementById('url-error').innerHTML = err.message;
+    throw err;
+  }
+  return getRefreshToken(query.code)
+    .then(getRequester)
+    .then(r => fetchSnapshot(r, parsedUrl))
+    .then(snapshot => {
+      currentSnapshotObject = snapshot;
+    })
+    .then(updateSnapshotDisplay)
+    .catch(err => {
+      document.getElementById('error-output').innerHTML = 'An unknown error occured. Check the dev console for more details.';
+      throw err;
+    });
+}
+
+function onSubmitClicked () {
+  const url = document.getElementById('thread-url-box').value;
+  if (cookies.refresh_token || query.code) {
+    return createSnapshot(url);
+  }
+  window.location = getAuthRedirect(url);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  if (cookies.refresh_token || query.code) {
+    getRefreshToken(query.code);
+  }
+  if (query.state) {
+    const url = decodeURIComponent(query.state);
+    document.getElementById('thread-url-box').value = url;
+    createSnapshot(url);
+  }
+});

@@ -4,21 +4,34 @@
 <meta charset="utf-8">
 <title>Reddit thread snapshots</title>
 <link rel="stylesheet" type="text/css" href="styles.css" />
-<script src="snapshot.js"></script>
 </head>
 
 <body>
 
-<div id="box">
+<div id="submit-box" class="box">
  <h2>Reddit thread snapshots</h2>
  <p>This tool will generate a JSON snapshot of all comments (even those that are not immediately visible) on any given reddit thread. It can be used through your own account.</p>
 
  <p>Enter the URL of a reddit thread or comment chain:</p>
- <input id="thread-url"></input>
+ <input id="thread-url-box"></input>
  <div id="url-error-message"></div>
- <button onclick="redirectToAuth()" class="submit">Submit</button>
+ <button id="submit-button" onclick="onSubmitClicked()" class="submit">Submit</button>
 
 </div>
 
+<div id="output-box" class="box">
+ <p id="loading-message">Your snapshot is being generated. Depending on the size of the thread, this could take anywhere between a second and a few minutes.</p>
+ <pre>
+  <code id="error-output"></code>
+ </pre>
+ <textarea readonly id="snapshot"></textarea>
+
+ <input type="checkbox" id="lite-checkbox" onclick="updateSnapshotDisplay()">Only show "important" JSON properties (author and body of comments/submissions)
+</input>
+</div>
+
 </body>
+
+<script src="https://not-an-aardvark.github.io/snoowrap/snoowrap.js"></script>
+<script src="snapshot.js"></script>
 </html>
