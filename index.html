@@ -1,5 +1,24 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Reddit thread snapshots</title>
+<link rel="stylesheet" type="text/css" href="styles.css" />
 <script src="snapshot.js"></script>
-<p>This tool will generate a JSON snapshot of all comments (even those that are not immediately visible) on any given reddit thread. It can be used through your own account.</p>
-<div>Enter the URL of a reddit thread or comment chain:</div>
-<input id="thread-url"></input><div id="url-error-message" style="color:red;"></div>
-<button onclick="redirectToAuth()">Click here</button>
+</head>
+
+<body>
+
+<div id="box">
+ <h2>Reddit thread snapshots</h2>
+ <p>This tool will generate a JSON snapshot of all comments (even those that are not immediately visible) on any given reddit thread. It can be used through your own account.</p>
+
+ <p>Enter the URL of a reddit thread or comment chain:</p>
+ <input id="thread-url"></input>
+ <div id="url-error-message"></div>
+ <button onclick="redirectToAuth()" class="submit">Submit</button>
+
+</div>
+
+</body>
+</html>
