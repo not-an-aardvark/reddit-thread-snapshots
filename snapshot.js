@@ -59,10 +59,13 @@ function fetchSnapshot (requester, urlMatches) {
 }
 
 function getRefreshToken () {
-  refreshTokenPromise = refreshTokenPromise || (cookies.refresh_token ? Promise.resolve(cookies.refresh_token) : snoowrap.request_handler.request.post({
-    url: 'https://www.reddit.com/api/v1/access_token',
-    auth: {user: REDDIT_APP_ID, pass: ''},
-    form: {grant_type: 'authorization_code', code: query.code, redirect_uri: REDIRECT_URI}
+  refreshTokenPromise = refreshTokenPromise || (cookies.refresh_token ? Promise.resolve(cookies.refresh_token) : Promise.resolve().then(() => {
+    const tempSnoowrap = new snoowrap({user_agent: USER_AGENT, client_id: REDDIT_APP_ID, client_secret: '', refresh_token: ''});
+    return tempSnoowrap.credentialed_client_request({
+      method: 'post',
+      uri: 'api/v1/access_token',
+      form: {grant_type: 'authorization_code', code: query.code, redirect_uri: REDIRECT_URI}
+    });
   }).then(response => {
     if (!response.refresh_token) {
       throw new Error('Authentication failed');
@@ -106,6 +109,7 @@ function parseSnapshot (snapshot, liteMode) {
 function updateSnapshotDisplay () {
   const liteMode = document.getElementById('lite-checkbox').checked;
   document.getElementById('loading-message').style.display = 'none';
+  document.getElementById('url-error-message').style.display = 'none';
   document.getElementById('snapshot').innerHTML = parseSnapshot(currentSnapshotObject, liteMode);
 }
 
