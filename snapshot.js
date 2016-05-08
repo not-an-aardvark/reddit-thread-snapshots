@@ -86,24 +86,8 @@ function getRequester (refresh_token) {
   return cachedRequester;
 }
 
-function recursivelyPickProps (obj) {
-  if (typeof obj !== 'object') {
-    return obj;
-  }
-  if (Array.isArray(obj)) {
-    return obj.map(recursivelyPickProps);
-  }
-  const newObj = {};
-  for (const i of LITE_KEY_NAMES) {
-    if (obj.hasOwnProperty(i)) {
-      newObj[i] = recursivelyPickProps(obj[i]);
-    }
-  }
-  return newObj;
-}
-
 function parseSnapshot (snapshot, liteMode) {
-  return liteMode ? JSON.stringify(recursivelyPickProps(snapshot.toJSON()), null, 4) : JSON.stringify(snapshot, null, 4);
+  return JSON.stringify(snapshot, liteMode ? LITE_KEY_NAMES : null, 4);
 }
 
 function updateSnapshotDisplay () {
