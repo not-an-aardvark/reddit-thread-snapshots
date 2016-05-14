@@ -126,7 +126,9 @@ function createSnapshot (url) {
     });
 }
 
+/* eslint-disable no-unused-vars */
 function onSubmitClicked () {
+  /* eslint-enable no-unused-vars */
   const url = document.getElementById('thread-url-box').value;
   if (cookies.access_token || query.code) {
     return createSnapshot(url);
