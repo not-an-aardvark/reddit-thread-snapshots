@@ -7,6 +7,7 @@ const USER_AGENT = 'reddit thread snapshots || https://github.com/not-an-aardvar
 const REQUIRED_SCOPES = ['read'];
 const LITE_KEY_NAMES = ['selftext', 'body', 'author', 'url', 'id', 'replies', 'comments'];
 let cachedRequester;
+let accessTokenPromise;
 let currentSnapshotObject;
 
 const query = parseQueryString(window.location.search);
@@ -58,7 +59,10 @@ function fetchSnapshot (requester, urlMatches) {
 }
 
 function getAccessToken () {
-  return cookies.access_token ? Promise.resolve(cookies.access_token) : Promise.resolve().then(() => {
+  if (accessTokenPromise) {
+    return accessTokenPromise;
+  }
+  accessTokenPromise = cookies.access_token ? Promise.resolve(cookies.access_token) : Promise.resolve().then(() => {
     return snoowrap.prototype.credentialed_client_request.call({
       user_agent: USER_AGENT,
       client_id: REDDIT_APP_ID,
@@ -76,6 +80,7 @@ function getAccessToken () {
     cookies.access_token = response.access_token;
     return response.access_token;
   });
+  return accessTokenPromise;
 }
 
 function getRequester (access_token) {
