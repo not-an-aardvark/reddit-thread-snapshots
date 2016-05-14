@@ -3,14 +3,14 @@
 const REDDIT_APP_ID = 'Xt1ApJ4VuMj1vw';
 const REDIRECT_URI = 'https://not-an-aardvark.github.io/reddit-thread-snapshots/';
 
-const USER_AGENT = 'reddit thread snapshots || https://github.com/not-an-aardvark/reddit-thread-snapshots';
+const USER_AGENT = 'reddit thread snapshots by /u/not_an_aardvark || https://github.com/not-an-aardvark/reddit-thread-snapshots';
 const REQUIRED_SCOPES = ['read'];
 const LITE_KEY_NAMES = ['selftext', 'body', 'author', 'url', 'id', 'replies', 'comments'];
 let cachedRequester;
 let accessTokenPromise;
 let currentSnapshotObject;
 
-const query = parseQueryString(window.location.search);
+const query = parseQueryString(location.search);
 const cookies = parseCookieString(document.cookie);
 
 function parseQueryString (str) {
@@ -131,7 +131,7 @@ function onSubmitClicked () {
   if (cookies.access_token || query.code) {
     return createSnapshot(url);
   }
-  window.location = getAuthRedirect(url);
+  location = getAuthRedirect(url);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
