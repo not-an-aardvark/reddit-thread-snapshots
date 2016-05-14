@@ -29,10 +29,10 @@ function parseQueryString (str) {
 function parseCookieString (cookieString) {
   const obj = {};
   const splitCookies = cookieString.split('; ');
-  for (const i of splitCookies) {
-    const pair = i.split('=');
+  splitCookies.forEach(cookie => {
+    const pair = cookie.split('=');
     obj[pair[0]] = pair[1];
-  }
+  });
   return obj;
 }
 
