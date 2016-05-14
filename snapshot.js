@@ -62,8 +62,9 @@ function getAccessToken () {
   if (accessTokenPromise) {
     return accessTokenPromise;
   }
-  accessTokenPromise = cookies.access_token ? Promise.resolve(cookies.access_token) : Promise.resolve().then(() => {
-    return snoowrap.prototype.credentialed_client_request.call({
+  accessTokenPromise = cookies.access_token
+    ? Promise.resolve(cookies.access_token)
+    : snoowrap.prototype.credentialed_client_request.call({
       user_agent: USER_AGENT,
       client_id: REDDIT_APP_ID,
       client_secret: ''
@@ -71,15 +72,14 @@ function getAccessToken () {
       method: 'post',
       url: 'https://www.reddit.com/api/v1/access_token',
       form: {grant_type: 'authorization_code', code: query.code, redirect_uri: REDIRECT_URI}
+    }).then(response => {
+      if (!response.access_token) {
+        throw new Error('Authentication failed');
+      }
+      document.cookie = `access_token=${response.access_token}; max-age=3600`;
+      cookies.access_token = response.access_token;
+      return response.access_token;
     });
-  }).then(response => {
-    if (!response.access_token) {
-      throw new Error('Authentication failed');
-    }
-    document.cookie = `access_token=${response.access_token}; max-age=3600`;
-    cookies.access_token = response.access_token;
-    return response.access_token;
-  });
   return accessTokenPromise;
 }
 
