@@ -7,7 +7,6 @@ const USER_AGENT = 'reddit thread snapshots || https://github.com/not-an-aardvar
 const REQUIRED_SCOPES = ['read'];
 const LITE_KEY_NAMES = ['selftext', 'body', 'author', 'url', 'id', 'replies', 'comments'];
 let cachedRequester;
-let refreshTokenPromise;
 let currentSnapshotObject;
 
 const query = parseQueryString(window.location.search);
@@ -58,30 +57,32 @@ function fetchSnapshot (requester, urlMatches) {
   return (urlMatches[2] ? requester.get_comment(urlMatches[2]) : requester.get_submission(urlMatches[1])).expand_replies();
 }
 
-function getRefreshToken () {
-  refreshTokenPromise = refreshTokenPromise || (cookies.refresh_token ? Promise.resolve(cookies.refresh_token) : Promise.resolve().then(() => {
-    const tempSnoowrap = new snoowrap({user_agent: USER_AGENT, client_id: REDDIT_APP_ID, client_secret: '', refresh_token: ''});
-    return tempSnoowrap.credentialed_client_request({
+function getAccessToken () {
+  return cookies.access_token ? Promise.resolve(cookies.access_token) : Promise.resolve().then(() => {
+    return snoowrap.prototype.credentialed_client_request.call({
+      user_agent: USER_AGENT,
+      client_id: REDDIT_APP_ID,
+      client_secret: ''
+    }, {
       method: 'post',
       uri: 'api/v1/access_token',
       form: {grant_type: 'authorization_code', code: query.code, redirect_uri: REDIRECT_URI}
     });
   }).then(response => {
-    if (!response.refresh_token) {
+    if (!response.access_token) {
       throw new Error('Authentication failed');
     }
-    document.cookie = `refresh_token=${response.refresh_token}; max-age=3600`;
-    cookies.refresh_token = response.refresh_token;
-    return response.refresh_token;
-  }));
-  return refreshTokenPromise;
+    document.cookie = `access_token=${response.access_token}; max-age=3600`;
+    cookies.access_token = response.access_token;
+    return response.access_token;
+  });
 }
 
-function getRequester (refresh_token) {
+function getRequester (access_token) {
   if (cachedRequester) {
     return cachedRequester;
   }
-  cachedRequester = new snoowrap({user_agent: USER_AGENT, client_id: REDDIT_APP_ID, client_secret: '', refresh_token});
+  cachedRequester = new snoowrap({user_agent: USER_AGENT, access_token});
   cachedRequester.config({debug: true});
   return cachedRequester;
 }
@@ -107,7 +108,7 @@ function createSnapshot (url) {
   }
   document.getElementById('output-box').style.display = 'block';
   document.getElementById('loading-message').style.display = 'block';
-  return getRefreshToken(query.code)
+  return getAccessToken(query.code)
     .then(getRequester)
     .then(r => fetchSnapshot(r, parsedUrl))
     .then(snapshot => {
@@ -122,15 +123,15 @@ function createSnapshot (url) {
 
 function onSubmitClicked () {
   const url = document.getElementById('thread-url-box').value;
-  if (cookies.refresh_token || query.code) {
+  if (cookies.access_token || query.code) {
     return createSnapshot(url);
   }
   window.location = getAuthRedirect(url);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  if (cookies.refresh_token || query.code) {
-    getRefreshToken(query.code);
+  if (cookies.access_token || query.code) {
+    getAccessToken(query.code);
   }
   if (query.state) {
     const url = decodeURIComponent(query.state);
