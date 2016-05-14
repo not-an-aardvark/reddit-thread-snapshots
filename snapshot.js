@@ -76,7 +76,7 @@ function getAccessToken () {
       if (!response.access_token) {
         throw new Error('Authentication failed');
       }
-      document.cookie = `access_token=${response.access_token}; max-age=3600`;
+      document.cookie = `access_token=${response.access_token}; max-age=3600; secure`;
       cookies.access_token = response.access_token;
       return response.access_token;
     });
