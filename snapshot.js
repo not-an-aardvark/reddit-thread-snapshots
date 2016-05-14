@@ -65,7 +65,7 @@ function getAccessToken () {
       client_secret: ''
     }, {
       method: 'post',
-      uri: 'api/v1/access_token',
+      url: 'https://www.reddit.com/api/v1/access_token',
       form: {grant_type: 'authorization_code', code: query.code, redirect_uri: REDIRECT_URI}
     });
   }).then(response => {
