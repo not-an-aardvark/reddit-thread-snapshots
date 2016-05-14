@@ -42,7 +42,7 @@ const getAuthRedirect = state =>
 &response_type=code
 &state=${state}
 &redirect_uri=${encodeURIComponent(REDIRECT_URI)}
-&duration=permanent
+&duration=temporary
 &scope=${REQUIRED_SCOPES.join('%2C')}
 `;
 
@@ -70,7 +70,7 @@ function getRefreshToken () {
     if (!response.refresh_token) {
       throw new Error('Authentication failed');
     }
-    document.cookie = `refresh_token=${response.refresh_token}`;
+    document.cookie = `refresh_token=${response.refresh_token}; max-age=3600`;
     cookies.refresh_token = response.refresh_token;
     return response.refresh_token;
   }));
