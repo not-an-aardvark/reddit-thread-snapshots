@@ -146,7 +146,3 @@ document.addEventListener('DOMContentLoaded', () => {
     createSnapshot(url);
   }
 });
-
-if (location.protocol !== 'https:') {
-  location = `https:${location.href.substring(location.protocol.length)}`;
-}
