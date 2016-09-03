@@ -1,53 +1,47 @@
 'use strict';
 /* global snoowrap */
-const REDDIT_APP_ID = 'Xt1ApJ4VuMj1vw';
-const REDIRECT_URI = 'https://not-an-aardvark.github.io/reddit-thread-snapshots/';
+var REDDIT_APP_ID = 'Xt1ApJ4VuMj1vw';
+var REDIRECT_URI = 'https://not-an-aardvark.github.io/reddit-thread-snapshots/';
 
-const USER_AGENT = 'reddit thread snapshots by /u/not_an_aardvark || https://github.com/not-an-aardvark/reddit-thread-snapshots';
-const REQUIRED_SCOPES = ['read'];
-const LITE_KEY_NAMES = ['selftext', 'body', 'author', 'url', 'id', 'replies', 'comments'];
-let cachedRequester;
-let accessTokenPromise;
-let currentSnapshotObject;
+var USER_AGENT = 'reddit thread snapshots by /u/not_an_aardvark || https://github.com/not-an-aardvark/reddit-thread-snapshots';
+var REQUIRED_SCOPES = ['read'];
+var LITE_KEY_NAMES = ['selftext', 'body', 'author', 'url', 'id', 'replies', 'comments'];
+var cachedRequester;
+var accessTokenPromise;
+var currentSnapshotObject;
 
-const query = parseQueryString(location.search);
-const cookies = parseCookieString(document.cookie);
+var query = parseQueryString(location.search);
+var cookies = parseCookieString(document.cookie);
 
 function parseQueryString (str) {
   if (!str) {
     return {};
   }
-  const obj = {};
-  const pieces = str.slice(1).split('&');
-  for (let i = 0; i < pieces.length; i++) {
-    const pair = pieces[i].split('=');
+  var obj = {};
+  var pieces = str.slice(1).split('&');
+  for (var i = 0; i < pieces.length; i++) {
+    var pair = pieces[i].split('=');
     obj[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1]);
   }
   return obj;
 }
 
 function parseCookieString (cookieString) {
-  const obj = {};
-  const splitCookies = cookieString.split('; ');
-  splitCookies.forEach(cookie => {
-    const pair = cookie.split('=');
+  var obj = {};
+  var splitCookies = cookieString.split('; ');
+  splitCookies.forEach(function (cookie) {
+    var pair = cookie.split('=');
     obj[pair[0]] = pair[1];
   });
   return obj;
 }
 
-const getAuthRedirect = state =>
-`https://reddit.com/api/v1/authorize
-?client_id=${REDDIT_APP_ID}
-&response_type=code
-&state=${state}
-&redirect_uri=${encodeURIComponent(REDIRECT_URI)}
-&duration=temporary
-&scope=${REQUIRED_SCOPES.join('%2C')}
-`;
+var getAuthRedirect = function (state) {
+  return `https://reddit.com/api/v1/authorize?client_id=${REDDIT_APP_ID}&response_type=code&state=${state}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&duration=temporary&scope=${REQUIRED_SCOPES.join('%2C')}`;
+};
 
 function parseUrl (url) {
-  const matches = url.match(/^(?:http(?:s?):\/\/)?(?:\w*\.)?reddit\.com\/(?:r\/\w{1,21}\/)?comments\/(\w{1,10})(?:\/[^\/\?]{1,100})?(?:\/(\w{1,10})|\/?)?(?:\?.*)?$/);
+  var matches = url.match(/^(?:http(?:s?):\/\/)?(?:\w*\.)?reddit\.com\/(?:r\/\w{1,21}\/)?comments\/(\w{1,10})(?:\/[^\/\?]{1,100})?(?:\/(\w{1,10})|\/?)?(?:\?.*)?$/);
   if (!matches) {
     throw new TypeError('Invalid URL. Please enter the URL of a reddit Submission or Comment.');
   }
@@ -72,7 +66,7 @@ function getAccessToken () {
       method: 'post',
       url: 'https://www.reddit.com/api/v1/access_token',
       form: {grant_type: 'authorization_code', code: query.code, redirect_uri: REDIRECT_URI}
-    }).then(response => {
+    }).then(function (response) {
       if (!response.access_token) {
         throw new Error('Authentication failed');
       }
@@ -97,14 +91,14 @@ function parseSnapshot (snapshot, liteMode) {
 }
 
 function updateSnapshotDisplay () {
-  const liteMode = document.getElementById('lite-checkbox').checked;
+  var liteMode = document.getElementById('lite-checkbox').checked;
   document.getElementById('loading-message').style.display = 'none';
   document.getElementById('url-error-message').style.display = 'none';
   document.getElementById('snapshot').innerHTML = parseSnapshot(currentSnapshotObject, liteMode);
 }
 
 function createSnapshot (url) {
-  let parsedUrl;
+  var parsedUrl;
   try {
     parsedUrl = parseUrl(url);
   } catch (err) {
@@ -115,12 +109,14 @@ function createSnapshot (url) {
   document.getElementById('loading-message').style.display = 'block';
   return getAccessToken(query.code)
     .then(getRequester)
-    .then(r => fetchSnapshot(r, parsedUrl))
-    .then(snapshot => {
+    .then(function (r) {
+      return fetchSnapshot(r, parsedUrl);
+    })
+    .then(function (snapshot) {
       currentSnapshotObject = snapshot;
     })
     .then(updateSnapshotDisplay)
-    .catch(err => {
+    .catch(function (err) {
       document.getElementById('error-output').innerHTML = 'An unknown error occured. Check the dev console for more details.';
       throw err;
     });
@@ -129,19 +125,19 @@ function createSnapshot (url) {
 /* eslint-disable no-unused-vars */
 function onSubmitClicked () {
   /* eslint-enable no-unused-vars */
-  const url = document.getElementById('thread-url-box').value;
+  var url = document.getElementById('thread-url-box').value;
   if (cookies.access_token || query.code) {
     return createSnapshot(url);
   }
   location = getAuthRedirect(url);
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', function () {
   if (cookies.access_token || query.code) {
     getAccessToken(query.code);
   }
   if (query.state) {
-    const url = decodeURIComponent(query.state);
+    var url = decodeURIComponent(query.state);
     document.getElementById('thread-url-box').value = url;
     createSnapshot(url);
   }
