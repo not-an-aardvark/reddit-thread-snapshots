@@ -118,6 +118,7 @@ function createSnapshot (url) {
     .then(updateSnapshotDisplay)
     .catch(function (err) {
       document.getElementById('error-output').innerHTML = 'An unknown error occured. Check the dev console for more details.';
+      console.error(err); // eslint-disable-line no-console
       throw err;
     });
 }
